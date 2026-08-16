@@ -1,0 +1,14 @@
+[Unit]
+Description=Gestor Escolar — Agente de Impressão
+After=network-online.target cups.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/gestor-escolar
+ExecStart=/opt/gestor-escolar/gestor-escolar
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+# Credenciais locais do dispositivo — NUNCA versionar.
+# O repositório de origem tinha esses dois arquivos versionados por engano (chave de enrollment de
+# produção no histórico); este repo nasceu sem histórico justamente para não herdar isso.
+token.txt
+config.json
+
+# Saídas de build
+dist/
+releases/*.zip
+
+# Binários gerados por `go build -o <nome> .` ad hoc
+gestor-escolar
+print-agent
+agent
+
+# Dependência de build de terceiro (SumatraPDF, GPLv3, sumatrapdfreader.org): baixada uma vez e
+# mantida só em disco, não é artefato nosso e não é redistribuída a partir daqui.
+SumatraPDF.exe
+
+# Drivers de impressora de terceiro (ex.: Epson TM-T20), mesma razão.
+installer/*.zip

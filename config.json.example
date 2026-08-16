@@ -1,0 +1,9 @@
+{
+  "server": "https://api.pedagogicoonline.com.br",
+  "appUrl": "https://app.pedagogicoonline.com.br",
+  "name": "Agente Escola Municipal",
+  "tokenFile": "token.txt",
+  "enrollmentKey": "<print_api_key da conta>",
+  "sumatraPdfPath": "SumatraPDF.exe",
+  "printSettings": "noscale"
+}
