@@ -6,8 +6,8 @@
 > agente é aberto, sob licença [MIT](LICENSE).
 >
 > Hoje o código é espelhado do monorepo privado, que continua sendo quem compila e publica os
-> releases. Passos marcados como "monorepo" abaixo (publicar no app web, `npm run pack:print-agent`)
-> não se aplicam a quem builda só a partir daqui — `./build.sh` gera os artefatos em `dist/` e para.
+> releases oficiais. `./build.sh` sozinho gera os artefatos em `dist/` e para — os passos de
+> publicação no app web não se aplicam a quem builda só a partir daqui.
 
 Agente local (Windows/Linux) que descobre impressoras, faz polling de jobs no backend e imprime PDFs via SumatraPDF (Windows) ou `lp` (Linux).
 
@@ -47,28 +47,19 @@ O agente grava configuração em **`%ProgramData%\GestorEscolar\`** (Windows) ou
 
 Problemas comuns: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 
-## Build e publicação
+## Build
 
 ```bash
-cd print-agent
 ./build.sh
-cd ../frontend
-npm run pack:print-agent
 ```
 
-Gera em `dist/` e publica em `frontend/public/`:
+Gera em `dist/`:
 
 | Saída | Uso |
 |-------|-----|
-| `dist/gestor-escolar.exe` | build local |
-| `dist/GestorEscolar-Setup-{VERSION}.exe` | instalador Windows |
-| `dist/gestor-escolar-linux-arm64-{VERSION}.tar.gz` | Linux ARM64 |
-| `frontend/public/print-agent/*` | download estático no app |
-| `frontend/public/print-agent-version.json` | manifest auto-update (SHA-256) |
-| `releases/print-agent-public.zip` | bundle local (não versionado — ver Distribuição) |
-
-O Amplify **não** compila Go. O `prebuild` do frontend descompacta `releases/print-agent-public.zip`
-via `frontend/scripts/unpack-print-agent-bundle.mjs` (no monorepo).
+| `gestor-escolar.exe` | binário Windows x86 |
+| `GestorEscolar-Setup-{VERSION}.exe` | instalador Windows (Inno Setup) |
+| `gestor-escolar-linux-arm64-{VERSION}.tar.gz` | instalador Linux ARM64 |
 
 Detalhes do instalador: [`installer/README.md`](installer/README.md).
 
@@ -105,39 +96,17 @@ e o do auto-update sairiam sem assinatura), e o SHA-256 do manifest é calculado
 Microsoft, e desde 2024 nem certificado EV concede reputação imediata — cada hash novo começa do
 zero. Para um app de baixo volume como este, o caminho prático é submeter cada release ao
 [WDSI](https://www.microsoft.com/en-us/wdsi/filesubmission) como *software developer* (resposta
-típica 1–5 dias úteis, propagação 24–48 h). Escolha de CA e custos: ver `BACKLOG.md`.
+típica 1–5 dias úteis, propagação 24–48 h).
 
-### Distribuição (034-print-push-events/T29, PPE-32)
+Este projeto é candidato ao programa de certificado gratuito da [SignPath Foundation](https://signpath.org)
+para software open source — aplicação em andamento.
 
-O zip **não é mais versionado no git** (era ~15 MB por release; somado a `SumatraPDF.exe` e a builds
-soltos, ~56 MB rastreados no índice antes desta task). A origem passou a ser **GitHub Releases**:
+## Distribuição
 
-- **Tag**: `print-agent-v<VERSION>` (ex.: `print-agent-v2.2.0`, de `print-agent/VERSION`).
-- **Asset**: `print-agent-public.zip` — o mesmo arquivo que `npm run pack:print-agent` produz em
-  `releases/print-agent-public.zip`.
-- **Repo**: `ZoglioControllato/gestor-escolar` (default de `unpack-print-agent-bundle.mjs`;
-  sobrescrevível por `PRINT_AGENT_RELEASES_REPO`, ou a URL inteira por `PRINT_AGENT_BUNDLE_URL`).
-
-**Passo de ops (não automatizado por este pipeline — sem `gh` CLI autenticado neste ambiente)**: após
-`npm run pack:print-agent`, publique o zip como asset do release:
-
-```bash
-# da raiz do repositório, depois de ./build.sh && npm run pack:print-agent --prefix frontend
-gh release create "print-agent-v$(cat print-agent/VERSION)" \
-  print-agent/releases/print-agent-public.zip \
-  --repo ZoglioControllato/gestor-escolar \
-  --title "print-agent v$(cat print-agent/VERSION)"
-```
-
-O `prebuild` do frontend (`unpack-print-agent-bundle.mjs`) baixa esse asset quando o zip local está
-ausente — é o caso normal em CI/Amplify Hosting, que faz checkout limpo. Se o download falhar em CI
-(release ainda não publicado, tag errada, repo errado), o `prebuild` **falha explicitamente** com a
-URL tentada e a instrução acima — nunca produz um build com artefatos do agente vazios/ausentes em
-silêncio. Fora de CI (dev local), a falha de download só avisa e segue (ergonomia local — o app roda
-sem os binários do agente).
-
-Limpeza do **histórico** do git (o zip e os outros binários continuam nos commits antigos, junto com
-o token versionado) permanece fora de escopo — ver BACKLOG:126.
+Releases oficiais (com o Windows assinado, quando disponível) são publicados como
+[GitHub Releases](../../releases) deste repositório ou espelhados a partir do monorepo privado que
+compila e serve o app web. Tag: `print-agent-v<VERSION>` (de `print-agent/VERSION`); asset:
+`print-agent-public.zip`.
 
 ## Execução
 
@@ -166,21 +135,9 @@ Contrato dos endpoints consumidos pelo agente:
 
 Autenticação (exceto `pair`): `Authorization: Bearer {device_token}`
 
-> `POST /print-agent/device-config/ack` existiu e foi removida (034-print-push-events/T30, PPE-33):
-> era o outro lado de um mecanismo de cache por ETag que o servidor nunca implementou de verdade —
-> nunca mandava `etag` no `GET /device-config` acima, então o agente nunca tinha motivo real para
-> chamar o ack.
+## Manifesto de auto-update
 
-## Estático no app web (`/print-agent/*`)
-
-Mesma estratégia do `/version.json` do app web:
-
-- **`/print-agent-version.json`** — versão + URLs relativas + SHA-256 (gerado pelo `build.sh`)
-- **`/print-agent/gestor-escolar-{VERSION}.exe`** — auto-update Windows x86
-- **`/print-agent/GestorEscolar-Setup-{VERSION}.exe`** — instalador manual
-- **`/print-agent/gestor-escolar-linux-arm64-{VERSION}.tar.gz`** — Linux ARM64
-
-Exemplo de manifest gerado:
+`update.go` consulta `{appUrl}/print-agent-version.json` periodicamente. Formato:
 
 ```json
 {
@@ -193,5 +150,4 @@ Exemplo de manifest gerado:
 }
 ```
 
-Release: bump [`VERSION`](VERSION) → `./build.sh` → `npm run pack:print-agent --prefix ../frontend` →
-publicar o zip como GitHub Release (ver § Distribuição acima) → deploy Amplify.
+O `build.sh` gera esse manifesto automaticamente com o SHA-256 dos artefatos.
