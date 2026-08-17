@@ -60,10 +60,10 @@ func onTrayReady() {
 
 func onTrayExit() {}
 
-// trayUnauthorizedLabel é o rótulo/tooltip que o tray exibe no estado "Desvinculado" (PPE-20): o
+// trayUnauthorizedLabel é o rótulo/tooltip que o tray exibe no estado "Desvinculado": o
 // mecanismo de revogação já funciona (401 → transportes param → re-pair único), mas antes desta
 // correção o resultado nunca chegava ao tray — o operador via o agente silenciosamente parado, sem
-// saber por quê (achado 2 do gate spec-driven-eval de 2026-08-10).
+// saber por quê.
 const trayUnauthorizedLabel = "Desvinculado — abra o painel para vincular novamente"
 
 // trayStatusPollInterval é o intervalo de checagem de IsAgentUnauthorized() para o tray. Curto o

@@ -11,7 +11,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------------------------
-// PPE-19 — sessão do painel local: header exigido, Origin/Host validados
+// Sessão do painel local: header exigido, Origin/Host validados
 // ---------------------------------------------------------------------------------------------
 
 // Caminho inseguro #1: sem o header de sessão → 403, e o handler interno nunca roda.
@@ -224,7 +224,7 @@ func TestMaskEnrollmentKeyNuncaDevolveOValorIntegro(t *testing.T) {
 // ---------------------------------------------------------------------------------------------
 
 // Caminho inseguro #3 provado fim a fim: GET /api/status sem o header → 403; com o header → 200 e
-// o token nunca aparece íntegro no corpo (PPE-14/PPE-19).
+// o token nunca aparece íntegro no corpo.
 func TestPainelE2E_StatusExigeSessaoEMascaraOToken(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:17345")
 	if err != nil {
@@ -278,7 +278,7 @@ func TestPainelE2E_StatusExigeSessaoEMascaraOToken(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-20 — o estado "Desvinculado" precisa chegar ao usuário via /api/status (achado 2 do gate
+// O estado "Desvinculado" precisa chegar ao usuário via /api/status (achado 2 do gate
 // spec-driven-eval, 20260810T023120Z): o mecanismo de revogação já funcionava internamente
 // (IsAgentUnauthorized()), mas a resposta de status não tinha o campo — este teste prova que agora tem.
 // ---------------------------------------------------------------------------------------------

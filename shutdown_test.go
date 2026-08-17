@@ -13,7 +13,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------------------------
-// PPE-30 — graceful shutdown: espera jobs em voo, respeita o teto, respeita o cancelamento
+// Graceful shutdown: espera jobs em voo, respeita o teto, respeita o cancelamento
 // ---------------------------------------------------------------------------------------------
 
 // awaitGracefulShutdown devolve assim que `done` fecha, sem esperar o teto inteiro.
@@ -107,7 +107,7 @@ func TestWaitForInFlightJobsRunnerNuloNaoPanica(t *testing.T) {
 	waitForInFlightJobs(nil, time.Second)
 }
 
-// PPE-30: o orçamento do report final durante o shutdown (jobs.FinalReportShutdownBudget) precisa
+// O orçamento do report final durante o shutdown (jobs.FinalReportShutdownBudget) precisa
 // ficar abaixo do teto de espera do shutdown (gracefulShutdownTimeout) — senão o report nunca teria
 // tempo de sequer começar antes de waitForInFlightJobs desistir de esperar e o processo sair.
 func TestFinalReportShutdownBudgetFicaAbaixoDoTetoDeShutdown(t *testing.T) {
@@ -118,7 +118,7 @@ func TestFinalReportShutdownBudgetFicaAbaixoDoTetoDeShutdown(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-30 — os dois achados nomeados da fase anterior: pareamento cancelável, ctx do SCM
+// Dois comportamentos importantes do shutdown: pareamento cancelável, ctx do SCM
 // ---------------------------------------------------------------------------------------------
 
 // Achado (i): o laço de pareamento respeita ctx.Done() — um SIGTERM durante o pareamento não espera

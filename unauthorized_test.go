@@ -25,7 +25,7 @@ func resetUnauthorizedState(t *testing.T) {
 func noSleep(ctx context.Context, d time.Duration) error { return nil }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-20 — 401/erro de autorização: transportes param, re-pair único, "Desvinculado"
+// 401/erro de autorização: transportes param, re-pair único, "Desvinculado"
 // ---------------------------------------------------------------------------------------------
 
 // Caminho inseguro: sem enrollmentKey salva, handleUnauthorized nunca tenta pair — vai direto para
@@ -201,7 +201,7 @@ func TestHandleUnauthorizedDesligaOTransporte(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-20 — "revogado não volta a pollar": os produtores de tráfego calam com IsAgentUnauthorized()
+// "Revogado não volta a pollar": os produtores de tráfego calam com IsAgentUnauthorized()
 // ---------------------------------------------------------------------------------------------
 
 // fetchPendingJobs devolve errAgentUnauthorized quando o servidor recusa com 401 — é o sinal que o

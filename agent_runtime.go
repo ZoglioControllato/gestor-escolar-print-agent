@@ -11,7 +11,7 @@ type agentRuntime struct {
 	statusOnline  atomic.Bool
 	lastPairError atomic.Value // string
 
-	// unauthorized marca o estado "Desvinculado" (PPE-20): o servidor recusou o token e nenhum
+	// unauthorized marca o estado "Desvinculado": o servidor recusou o token e nenhum
 	// re-pair automático teve sucesso (ou não havia enrollmentKey salva para tentar). Só sai desse
 	// estado por um pareamento que funcione — automático (handleUnauthorized) ou manual (painel).
 	unauthorized atomic.Bool
@@ -23,7 +23,7 @@ type agentRuntime struct {
 
 	// cfg guarda a config **publicada**: uma cópia que ninguém mais mutará.
 	//
-	// O defeito que isto fecha (PPE-29, diagnostic.md §3 achado #2): a config era um `*Config`
+	// O defeito que isto fecha: a config era um `*Config`
 	// compartilhado e `syncDeviceConfig` escrevia direto no mapa dele (`cfg.PrinterTypes[k] = v`),
 	// chamada por **dois** tickers (60 s e o redundante de 30 min) enquanto o painel local e as
 	// goroutines de job liam o mesmo mapa. Escrita concorrente em mapa não é "resultado errado" em
@@ -72,7 +72,7 @@ func GetLastPairError() string {
 	return v
 }
 
-// SetAgentUnauthorized marca ou limpa o estado "Desvinculado" (PPE-20).
+// SetAgentUnauthorized marca ou limpa o estado "Desvinculado".
 func SetAgentUnauthorized(v bool) { runtimeState.unauthorized.Store(v) }
 
 // IsAgentUnauthorized reporta se o agente está no estado "Desvinculado" — os produtores de tráfego

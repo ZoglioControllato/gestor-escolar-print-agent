@@ -1,7 +1,7 @@
 // Package jobs é o consumidor de fila de impressão do agente: um único consumidor serializado que
 // reivindica cada job antes de imprimir e nunca imprime o mesmo job duas vezes.
 //
-// O defeito que este pacote fecha (PPE-09, diagnostic.md §3 achado #3): o agente disparava
+// O defeito que este pacote fecha: o agente disparava
 // `go processJob` para cada job de cada poll, sem registro de jobs em voo, e `reportStatus` era
 // fire-and-forget. Quando o report falhava, o job continuava `queued` no servidor — e o poll de
 // 1 segundo o buscava e o imprimia **de novo, a cada segundo**, indefinidamente. Uma escola com a
@@ -34,12 +34,12 @@ const (
 	// prender o consumidor por mais de ~3,5 min.
 	ReportBaseDelay = 15 * time.Second
 
-	// ReportMaxDelay é o teto entre retentativas (PPE-09).
+	// ReportMaxDelay é o teto entre retentativas.
 	ReportMaxDelay = 2 * time.Minute
 
 	// FinalReportShutdownBudget é o teto do report final (completed/failed) quando ele roda sob um
-	// context já cancelado — o caso do graceful shutdown (PPE-30, achado 1 do gate spec-driven-eval de
-	// 2026-08-10). Deliberadamente **menor** que `gracefulShutdownTimeout` (30 s, main.go — asserção
+	// context já cancelado — o caso do graceful shutdown. Deliberadamente **menor** que
+	// `gracefulShutdownTimeout` (30 s, main.go — asserção
 	// disso mesmo em `TestFinalReportShutdownBudgetFicaAbaixoDoTetoDeShutdown`, shutdown_test.go):
 	// estourar o teto do shutdown não compra nenhuma tentativa extra, porque `waitForInFlightJobs` já
 	// desistiu de esperar e o processo sai de qualquer forma — só atrasaria a saída sem aumentar a
@@ -58,7 +58,7 @@ type Job struct {
 // Deps é tudo que o runner precisa do mundo externo. Injetado para que a prova de unicidade rode
 // sem rede e sem impressora.
 type Deps struct {
-	// Fetch busca a fila. `cooldown` > 0 é o servidor pedindo silêncio num 429 (PPE-06).
+	// Fetch busca a fila. `cooldown` > 0 é o servidor pedindo silêncio num 429.
 	Fetch func(ctx context.Context) (jobs []Job, cooldown time.Duration, err error)
 
 	// Report informa o estado de um job. Erro inclui resposta não-2xx: "não registrou" e
@@ -153,7 +153,7 @@ func (r *Runner) Run(ctx context.Context, wake <-chan struct{}) {
 //
 // Devolve o cooldown pedido pelo servidor (429), para o chamador honrá-lo.
 //
-// Duas passadas (PR-11, feature 038): primeiro reivindica (`status=printing`) **todos** os jobs do
+// Duas passadas: primeiro reivindica (`status=printing`) **todos** os jobs do
 // lote — é só um POST, não depende de imprimir — e só depois baixa e imprime cada um, serial. Antes
 // as duas fases estavam acopladas por job dentro do mesmo laço, e o claim do job N+1 só acontecia
 // depois que o job N tinha terminado de imprimir por completo (`Print()` bloqueia até o papel sair
@@ -187,12 +187,12 @@ func (r *Runner) Drain(ctx context.Context) (time.Duration, error) {
 
 	// Passada de impressão: **sem** checagem de `ctx.Err()` aqui, de propósito. Todo job desta lista
 	// já foi reivindicado (o servidor acha que está `printing`) — abandoná-lo por causa do
-	// cancelamento o deixaria preso nesse status para sempre (reabriria o PPE-30, agora para vários
-	// jobs de uma vez em vez de só um). `Print()` não é cancelável de qualquer forma
-	// (`cmd.CombinedOutput()` sem `CommandContext`, main.go) e `reportFinalWithRetry` já sabe sair
-	// rápido sob context cancelado (`context.WithoutCancel` + `FinalReportShutdownBudget`) — a
-	// garantia "reivindicado sempre recebe report final" só se sustenta se este laço nunca desistir no
-	// meio. O update automático (PR-11, `checkAndApplyUpdate`) é quem evita chegar a este cenário:
+	// cancelamento o deixaria preso nesse status para sempre (o job ficaria em `printing` para
+	// sempre, agora para vários jobs de uma vez em vez de só um). `Print()` não é cancelável de
+	// qualquer forma (`cmd.CombinedOutput()` sem `CommandContext`, main.go) e `reportFinalWithRetry`
+	// já sabe sair rápido sob context cancelado (`context.WithoutCancel` + `FinalReportShutdownBudget`)
+	// — a garantia "reivindicado sempre recebe report final" só se sustenta se este laço nunca desistir
+	// no meio. O update automático (`checkAndApplyUpdate`) é quem evita chegar a este cenário:
 	// não reinicia o processo enquanto `InFlight() > 0`.
 	for _, job := range claimed {
 		r.printAndReport(ctx, job)
@@ -234,15 +234,15 @@ func (r *Runner) printAndReport(ctx context.Context, job Job) {
 	if err := r.reportFinalWithRetry(ctx, job.ID, status, errMsg); err != nil {
 		// O job **fica** no set, de propósito e para sempre (até o processo reiniciar). Ele já foi
 		// impresso e o servidor não sabe; se voltar na fila e nós o soltássemos aqui, o próximo
-		// ciclo o imprimiria de novo — que é exatamente o achado #3. Um job preso é uma folha a
-		// menos; um job solto é a mesma folha saindo indefinidamente.
+		// ciclo o imprimiria de novo. Um job preso é uma folha a menos; um job solto é a mesma folha
+		// saindo indefinidamente.
 		r.deps.Logf("[JOBS] report final do job %s não foi aceito (%v) — job segue retido para não reimprimir", job.ID, err)
 		return
 	}
 	r.release(job.ID)
 }
 
-// reportWithRetry insiste no report com backoff exponencial (PPE-09).
+// reportWithRetry insiste no report com backoff exponencial.
 func (r *Runner) reportWithRetry(ctx context.Context, jobID, status, errMsg string) error {
 	var lastErr error
 	for attempt := 0; attempt < ReportAttempts; attempt++ {
@@ -267,7 +267,7 @@ func (r *Runner) reportWithRetry(ctx context.Context, jobID, status, errMsg stri
 
 // reportFinalWithRetry envia o report **final** (completed/failed) de um job — o documento já foi
 // impresso neste ponto, então perder este report é o pior desfecho possível: o job fica `printing` no
-// Postgres para sempre (PPE-30, achado 1 do gate spec-driven-eval de 2026-08-10).
+// Postgres para sempre.
 //
 // Caminho normal (ctx vivo): delega para reportWithRetry sem nenhuma mudança de comportamento — 5
 // tentativas, backoff até 2 min, preso ao ctx recebido, exatamente como o claim.

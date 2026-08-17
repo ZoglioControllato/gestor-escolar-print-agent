@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// Padrões proibidos em arquivo de produção do agente (PPE-25).
+// Padrões proibidos em arquivo de produção do agente.
 //
-// Cada um foi um defeito medido no diagnóstico da feature (§3 achado #4):
+// Cada um foi um defeito medido no diagnóstico da feature:
 //   - `http.DefaultClient`, `http.Get`, `http.Post` — cliente **sem timeout algum**: uma conexão
 //     pendurada congelava o agente até reinício manual.
 //   - `req, _ :=` — erro de `http.NewRequest` descartado, seguido de dereferência do nil.
@@ -103,7 +103,7 @@ func stripComments(src string) []string {
 	return lines
 }
 
-// PPE-25: nenhum arquivo de produção fala HTTP sem timeout, sem context ou descartando o erro de
+// Nenhum arquivo de produção fala HTTP sem timeout, sem context ou descartando o erro de
 // construção da requisição.
 func TestNenhumCallSiteHTTPSemTimeoutOuContext(t *testing.T) {
 	for _, file := range goProductionFiles(t) {

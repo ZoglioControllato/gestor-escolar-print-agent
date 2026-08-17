@@ -15,9 +15,9 @@ func (m *printManagerService) Execute(args []string, r <-chan svc.ChangeRequest,
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 
-	// PPE-30: o context raiz nasce **aqui**, ligado ao stop do SCM — antes desta task, `runAgent`
+	// O context raiz nasce **aqui**, ligado ao stop do SCM — antes desta task, `runAgent`
 	// criava o próprio `context.Background()` internamente, e um `Stop`/`Shutdown` do Windows não
-	// tinha como alcançá-lo (achado (ii) da fase anterior: o `cancel()` abaixo era o elo que faltava).
+	// tinha como alcançá-lo (o `cancel()` abaixo era o elo que faltava).
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {

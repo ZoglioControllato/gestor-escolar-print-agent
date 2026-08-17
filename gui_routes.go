@@ -1,5 +1,5 @@
-// As rotas do painel local (PPE-19/PPE-14) vivem aqui, e não em gui_windows.go, pelo mesmo motivo
-// de applyEnrollInput ter saído de lá em T19: gui_windows.go tem `//go:build windows` e o gate desta
+// As rotas do painel local vivem aqui, e não em gui_windows.go, pelo mesmo motivo
+// de applyEnrollInput ter saído de lá: gui_windows.go tem `//go:build windows` e o gate desta
 // fase roda em Linux — código que só existe atrás da build tag é invisível ao teste. Nada aqui é
 // Windows-específico: `net/http`, `crypto/rand`, `crypto/subtle` são todos multiplataforma. Só quem
 // liga o listener (`net.Listen` na porta fixa) continua em gui_windows.go, porque o painel em si
@@ -16,12 +16,11 @@ import (
 	"strings"
 )
 
-// GUISessionHeader é o header que toda rota `/api/*` do painel local exige (PPE-19,
-// diagnostic.md §3 achado #6).
+// GUISessionHeader é o header que toda rota `/api/*` do painel local exige.
 const GUISessionHeader = "X-Agent-Session"
 
 // newGUISessionToken gera um segredo de 32 bytes (256 bits) por boot — nunca persistido, nunca
-// reusado entre reinícios. É o que fecha o CSRF do achado #6: antes, qualquer página aberta no
+// reusado entre reinícios. É o que fecha o CSRF: antes, qualquer página aberta no
 // mesmo navegador podia falar com `/api/*` só por conhecer a porta fixa (127.0.0.1:17345), sem
 // nenhum segredo — inclusive `/api/enroll`, que troca o servidor e a chave de enrollment do device.
 func newGUISessionToken() (string, error) {
@@ -65,7 +64,7 @@ func secureCompareStrings(a, b string) bool {
 }
 
 // requireGUISession recusa (403) qualquer requisição sem o header de sessão certo, ou com
-// Origin/Host que não é o do painel (PPE-19).
+// Origin/Host que não é o do painel.
 //
 // `/` fica de fora desta guarda por necessidade, não por descuido: é a própria página que entrega o
 // token ao navegador (`renderGUIHTML`), e nada consegue mandar o header antes de ter lido o token —
@@ -85,7 +84,7 @@ func requireGUISession(sessionToken string, next http.HandlerFunc) http.HandlerF
 	}
 }
 
-// maskToken mascara um segredo para exibição (PPE-14/PPE-19): só os 4 primeiros e 4 últimos
+// maskToken mascara um segredo para exibição: só os 4 primeiros e 4 últimos
 // caracteres sobrevivem — o suficiente para o usuário reconhecer "é este device", nunca para
 // reconstruir o valor. Token vazio continua vazio (é o estado "ainda não pareado" que a UI já trata
 // à parte); token curto demais para a máscara de 4+4 vira pontos, nunca o valor cru.
@@ -100,7 +99,7 @@ func maskToken(token string) string {
 	return token[:4] + "…" + token[len(token)-4:]
 }
 
-// renderGUIHTML injeta o token de sessão do boot na página (PPE-19): é dali que o JavaScript lê o
+// renderGUIHTML injeta o token de sessão do boot na página: é dali que o JavaScript lê o
 // valor para devolvê-lo em `X-Agent-Session` em toda chamada a `/api/*`. O token é hex
 // (`newGUISessionToken`), então a substituição direta dentro de uma string literal JS é segura —
 // não há aspas nem caractere de controle para escapar.
@@ -148,7 +147,7 @@ func registerGUIRoutes(mux *http.ServeMux, initialCfg *Config, sessionToken stri
 		if pairErr != "" && token == "" {
 			statusStr = "Erro de vinculação"
 		}
-		// PPE-20: o estado "Desvinculado" existia só internamente (IsAgentUnauthorized()) — o
+		// O estado "Desvinculado" existia só internamente (IsAgentUnauthorized()) — o
 		// mecanismo de revogação funcionava (401 → transportes param → re-pair único), mas nunca
 		// chegava ao usuário. Ganha prioridade sobre online/pairErr: é o estado mais específico e o
 		// único que explica por que o agente parou de vez (achado 2 do gate spec-driven-eval de
@@ -191,8 +190,8 @@ func registerGUIRoutes(mux *http.ServeMux, initialCfg *Config, sessionToken stri
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"agentName": name,
 			"version":   agentVersion,
-			// PPE-14/PPE-19: mascarado — antes, o token íntegro do device saía em texto puro nesta
-			// resposta, alcançável por qualquer processo que soubesse a porta fixa (achado #6).
+			// Mascarado — antes, o token íntegro do device saía em texto puro nesta
+			// resposta, alcançável por qualquer processo que soubesse a porta fixa.
 			"token":            maskToken(token),
 			"status":           statusStr,
 			"online":           online,
@@ -294,12 +293,12 @@ func registerGUIRoutes(mux *http.ServeMux, initialCfg *Config, sessionToken stri
 		}
 		SetLastPairError("")
 		SetTrayToken(tokenStr)
-		// PPE-20: um re-pareamento manual bem-sucedido tira o agente do estado "Desvinculado" —
+		// Um re-pareamento manual bem-sucedido tira o agente do estado "Desvinculado" —
 		// sem isto, os produtores de tráfego (poll/heartbeat/sync) continuariam de braços cruzados
 		// mesmo com um token novo e válido em mãos, porque IsAgentUnauthorized() ainda diria true.
 		SetAgentUnauthorized(false)
 		w.Header().Set("Content-Type", "application/json")
-		// PPE-14: mascarado pelo mesmo motivo do /api/status — o corpo desta resposta não precisa
+		// Mascarado pelo mesmo motivo do /api/status — o corpo desta resposta não precisa
 		// do token íntegro para confirmar ao usuário que o pareamento funcionou.
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"ok":    "true",
@@ -456,7 +455,7 @@ async function loadStatus() {
     document.getElementById('agent-version').textContent = 'v' + (d.version || '—');
     document.getElementById('footer-version').textContent = 'Impressão Remota v' + (d.version || '—');
     const dot = document.getElementById('status-dot');
-    // PPE-20: "Desvinculado" (d.unauthorized) tem prioridade visual sobre online/offline — é o único
+    // "Desvinculado" (d.unauthorized) tem prioridade visual sobre online/offline — é o único
     // estado que explica por que o agente parou de vez, em vez de só estar temporariamente sem rede.
     dot.className = 'dot ' + (d.unauthorized ? 'unauthorized' : (d.online ? 'online' : 'offline'));
     document.getElementById('status-text').textContent = d.status;

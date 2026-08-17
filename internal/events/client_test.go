@@ -41,7 +41,7 @@ func waitWake(t *testing.T, c *Client, within time.Duration) {
 	}
 }
 
-// PPE-02: o handshake carrega os dois subprotocols que o Events API exige, e o segundo decodifica
+// O handshake carrega os dois subprotocols que o Events API exige, e o segundo decodifica
 // para o objeto de autorização com host e token do device. Errar isto é um handshake recusado em
 // produção — e o `-s` do wscat de `amplify/README.md` monta exatamente esta string.
 func TestHandshakeOfereceSubprotocolsComAutorizacao(t *testing.T) {
@@ -71,15 +71,15 @@ func TestHandshakeOfereceSubprotocolsComAutorizacao(t *testing.T) {
 	if hs[0].authToken != "device-token-secreto" {
 		t.Fatalf("Authorization = %q", hs[0].authToken)
 	}
-	// O `host` do authJSON é o **HTTP** host (PPE-34), nunca o realtime nem o host do teste.
+	// O `host` do authJSON é o **HTTP** host, nunca o realtime nem o host do teste.
 	if hs[0].authHost != "events-dev.pedagogicoonline.com.br" {
 		t.Fatalf("host = %q", hs[0].authHost)
 	}
 }
 
-// PPE-03: o subscribe pede exatamente o canal do device e leva a autorização junto — é o
+// O subscribe pede exatamente o canal do device e leva a autorização junto — é o
 // `EVENT_SUBSCRIBE` que carrega o isolamento multi-tenant inteiro (o `channel` é `null` no
-// `EVENT_CONNECT`, achado 1 de T6). Um subscribe sem `authorization` seria recusado.
+// `EVENT_CONNECT`). Um subscribe sem `authorization` seria recusado.
 func TestSubscribePedeOCanalDoDeviceComAutorizacao(t *testing.T) {
 	f := newFakeEventsAPI(t)
 	c := New(testCfg(f))
@@ -118,7 +118,7 @@ func TestSubscribePedeOCanalDoDeviceComAutorizacao(t *testing.T) {
 	}
 }
 
-// PPE-06: `subscribe_success` dispara um poll imediato de drenagem, e o estado vira Subscribed —
+// `subscribe_success` dispara um poll imediato de drenagem, e o estado vira Subscribed —
 // que é o que faz o poll de fallback relaxar de 10 s para 300 s.
 func TestSubscribeSuccessAcordaEMudaStatus(t *testing.T) {
 	f := newFakeEventsAPI(t)
@@ -136,7 +136,7 @@ func TestSubscribeSuccessAcordaEMudaStatus(t *testing.T) {
 	}
 }
 
-// PPE-02: o evento chega **duplamente codificado** (`{"type":"data","event":"<json string>"}`),
+// O evento chega **duplamente codificado** (`{"type":"data","event":"<json string>"}`),
 // porque é assim que o backend publica (`print-events.ts` § publishBody). Ler só a camada de fora
 // devolveria uma string, e o `jobId` da telemetria se perderia.
 func TestEventoComDuplaDecodificacaoAcordaEEntregaJobId(t *testing.T) {
@@ -269,7 +269,7 @@ func TestComKaFluindoAConexaoSobrevive(t *testing.T) {
 	}
 }
 
-// PPE-20/PPE-05: erro de autorização não é queda de rede. Insistir contra um token revogado é o
+// Erro de autorização não é queda de rede. Insistir contra um token revogado é o
 // laço quente que a spec proíbe — o cliente para e emite o sinal que o agente consome como 401.
 func TestErroDeAutorizacaoParaOClienteEEmiteSinal(t *testing.T) {
 	f := newFakeEventsAPI(t)
@@ -352,7 +352,7 @@ func TestQuedaComumReconectaComBackoff(t *testing.T) {
 }
 
 // Config incompleta (kill-switch, bloco `events` ausente) não vira tentativa de conexão contra host
-// vazio: o cliente simplesmente não roda, e o agente opera em poll (PPE-28).
+// vazio: o cliente simplesmente não roda, e o agente opera em poll.
 func TestConfigIncompletaNaoTentaConectar(t *testing.T) {
 	cases := map[string]Config{
 		"tudo vazio":       {},
@@ -381,7 +381,7 @@ func TestConfigIncompletaNaoTentaConectar(t *testing.T) {
 	}
 }
 
-// O cancelamento do context raiz para o transporte — é o que o graceful shutdown (T27) vai usar.
+// O cancelamento do context raiz para o transporte — é o que o graceful shutdown vai usar.
 func TestCancelamentoDoContextParaOCliente(t *testing.T) {
 	f := newFakeEventsAPI(t)
 	c := New(testCfg(f))

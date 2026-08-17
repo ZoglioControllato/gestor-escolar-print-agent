@@ -39,7 +39,7 @@ func tryOpenGUIPanel() bool {
 	url := fmt.Sprintf("http://127.0.0.1:%d", fixedGUIPort)
 	ctx, cancel := context.WithTimeout(context.Background(), guiProbeTimeout)
 	defer cancel()
-	// Sonda "/", não "/api/status": desde PPE-19 toda rota /api/* exige o header de sessão do boot
+	// Sonda "/", não "/api/status": toda rota /api/* exige o header de sessão do boot
 	// de **outro** processo, que este processo (só verificando se algo escuta na porta) não tem.
 	// "/" continua sem essa exigência (é ela quem entrega o token), então basta responder para
 	// confirmar que o painel já está de pé.

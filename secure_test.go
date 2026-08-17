@@ -12,18 +12,18 @@ import (
 )
 
 // ---------------------------------------------------------------------------------------------
-// PPE-22 — modo 0600 em arquivo sensível (token/config)
+// Modo 0600 em arquivo sensível (token/config)
 //
 // O ambiente de teste roda em Linux/CI: aqui é onde o bit Unix é o mecanismo real de proteção — a
 // ACL do Windows (secure_windows.go, via icacls) não é verificável neste ambiente e fica só na
-// revisão de código + do .iss (nota no relatório da task).
+// revisão de código + do .iss.
 // ---------------------------------------------------------------------------------------------
 
-// PPE-22: saveConfig grava config.json em 0600, nunca 0644.
+// saveConfig grava config.json em 0600, nunca 0644.
 //
 // configDataDirOverride isola o teste num diretório temporário — sem ele, este teste exercitaria
 // configDataDir() contra o caminho real de produção (/var/lib/gestor-escolar em Linux), que exige
-// root e falha por permissão em runners CI sem privilégio (achado real: CI do PR #374).
+// root e falha por permissão em runners CI sem privilégio.
 func TestSaveConfigGravaConfigJsonEm0600(t *testing.T) {
 	configDataDirOverride = t.TempDir()
 	t.Cleanup(func() { configDataDirOverride = "" })
@@ -40,11 +40,11 @@ func TestSaveConfigGravaConfigJsonEm0600(t *testing.T) {
 		t.Fatalf("config.json não foi criado: %v", err)
 	}
 	if perm := info.Mode().Perm(); perm != 0600 {
-		t.Fatalf("modo de config.json = %o, esperado 0600 (era 0644 — achado #7 do diagnóstico)", perm)
+		t.Fatalf("modo de config.json = %o, esperado 0600 (era 0644 antes)", perm)
 	}
 }
 
-// PPE-22: ensureDataFiles cria token.txt em 0600 (o placeholder inicial, antes de qualquer pair).
+// ensureDataFiles cria token.txt em 0600 (o placeholder inicial, antes de qualquer pair).
 func TestEnsureDataFilesCriaTokenTxtEm0600(t *testing.T) {
 	configDataDirOverride = t.TempDir()
 	t.Cleanup(func() { configDataDirOverride = "" })
@@ -61,11 +61,11 @@ func TestEnsureDataFilesCriaTokenTxtEm0600(t *testing.T) {
 		t.Fatalf("token.txt não foi criado: %v", err)
 	}
 	if perm := info.Mode().Perm(); perm != 0600 {
-		t.Fatalf("modo de token.txt = %o, esperado 0600 (era 0644 — achado #7 do diagnóstico)", perm)
+		t.Fatalf("modo de token.txt = %o, esperado 0600 (era 0644 antes)", perm)
 	}
 }
 
-// PPE-22: pair() grava o token recebido do servidor em 0600.
+// pair() grava o token recebido do servidor em 0600.
 func TestPairGravaTokenEm0600(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -88,7 +88,7 @@ func TestPairGravaTokenEm0600(t *testing.T) {
 	}
 }
 
-// PPE-33 (034-print-push-events/T30): syncDeviceConfig não fala mais com /device-config/ack nem
+// syncDeviceConfig não fala mais com /device-config/ack nem
 // grava arquivo de etag — mesmo quando o corpo traz um `etag` (um servidor antigo em cache, ou um
 // futuro descuidado, poderia mandar o campo de volta; a prova é que isso não ressuscita nenhum dos
 // dois efeitos colaterais). Só o `GET /device-config` deveria ser chamado — qualquer outro path
@@ -144,7 +144,7 @@ func TestRestrictFilePermissionsNaoWindowsENoOp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-31 — varredura de temp órfão (startup + reaper periódico, sem goroutine por job)
+// Varredura de temp órfão (startup + reaper periódico, sem goroutine por job)
 // ---------------------------------------------------------------------------------------------
 
 // sweepOrphanTempFiles remove só o que é mais velho que maxAge; arquivo recente sobrevive.
@@ -222,8 +222,8 @@ func TestSweepOrphanTempFilesIgnoraSubdiretorio(t *testing.T) {
 	}
 }
 
-// PPE-31: nenhuma goroutine dedicada de 3 min por job — a versão executável do "goroutine de 3 min
-// por job só para apagar arquivo" do achado #7 do diagnóstico.
+// Nenhuma goroutine dedicada de 3 min por job — a versão executável do "goroutine de 3 min
+// por job só para apagar arquivo".
 func TestSemGoroutineDe3MinutosPorJob(t *testing.T) {
 	src, err := os.ReadFile("main.go")
 	if err != nil {

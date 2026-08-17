@@ -178,7 +178,7 @@ func jobN(n int) Job {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-09 — unicidade
+// Unicidade
 // ---------------------------------------------------------------------------------------------
 
 // Caminho feliz: claim antes de imprimir, `completed` depois, e o job sai do registro.
@@ -202,7 +202,7 @@ func TestJobEReivindicadoAntesDeImprimirEFechadoDepois(t *testing.T) {
 	}
 }
 
-// PPE-09, cenário "poll concorrente": vários drains ao mesmo tempo sobre a mesma fila.
+// Cenário "poll concorrente": vários drains ao mesmo tempo sobre a mesma fila.
 //
 // Sob `-race` este teste também prova que o registro de jobs em voo é sincronizado; a contagem de
 // impressões prova que ele **decide** certo. O código anterior disparava `go processJob` por job
@@ -273,7 +273,7 @@ func TestDrainsConcorrentesImprimemOJobUmaUnicaVez(t *testing.T) {
 	}
 }
 
-// PPE-09, cenário "evento duplicado": o Events API pode reentregar. Dois wakes, um job.
+// Cenário "evento duplicado": o Events API pode reentregar. Dois wakes, um job.
 func TestEventoDuplicadoNaoImprimeDuasVezes(t *testing.T) {
 	f := newFakeBackend(jobN(1))
 
@@ -303,7 +303,7 @@ func TestEventoDuplicadoNaoImprimeDuasVezes(t *testing.T) {
 	}
 }
 
-// PPE-09, o achado #3 na íntegra: o report final não é aceito e o job **continua** aparecendo na
+// O report final não é aceito e o job **continua** aparecendo na
 // fila. Antes, cada poll o imprimia de novo — indefinidamente, a cada segundo.
 func TestReportFinalRecusadoNaoDeixaOJobSerReimpresso(t *testing.T) {
 	f := newFakeBackend(jobN(1))
@@ -326,14 +326,14 @@ func TestReportFinalRecusadoNaoDeixaOJobSerReimpresso(t *testing.T) {
 	}
 
 	if n := f.printCount("job-1"); n != 1 {
-		t.Fatalf("job-1 impresso %d vezes em 5 ciclos — é a reimpressão infinita do achado #3", n)
+		t.Fatalf("job-1 impresso %d vezes em 5 ciclos — é reimpressão infinita", n)
 	}
 	if r.InFlight() != 1 {
 		t.Fatalf("InFlight = %d, esperado 1: o job precisa ficar retido enquanto o report final não é aceito", r.InFlight())
 	}
 }
 
-// PPE-09, o outro lado: claim que não é aceito **não imprime** e devolve o job para uma tentativa
+// O outro lado: claim que não é aceito **não imprime** e devolve o job para uma tentativa
 // futura. Reter aqui perderia para sempre um job cuja única falha foi uma oscilação de rede;
 // imprimir seria imprimir sem o servidor saber.
 func TestClaimRecusadoNaoImprimeEDevolveOJob(t *testing.T) {
@@ -371,7 +371,7 @@ func TestClaimRecusadoNaoImprimeEDevolveOJob(t *testing.T) {
 	}
 }
 
-// PPE-02 (rajada) + PPE-09: um fetch devolve a fila inteira, e cada job sai exatamente uma vez.
+// Rajada: um fetch devolve a fila inteira, e cada job sai exatamente uma vez.
 func TestRajadaDeJobsImprimeCadaUmExatamenteUmaVez(t *testing.T) {
 	const n = 12
 	var lista []Job
@@ -412,7 +412,7 @@ func TestRajadaDeJobsImprimeCadaUmExatamenteUmaVez(t *testing.T) {
 	}
 }
 
-// PR-11 (feature 038): o claim (`status=printing`) de **todos** os jobs do lote acontece antes de
+// O claim (`status=printing`) de **todos** os jobs do lote acontece antes de
 // qualquer impressão física começar. Antes desta task, as duas fases estavam acopladas por job no
 // mesmo laço — o claim do job N+1 só saía depois que o job N terminava de imprimir por completo
 // (`Print()` bloqueia até o papel sair da impressora), medido ao vivo como 7-12s de atraso numa
@@ -448,7 +448,7 @@ func TestTodosOsJobsDoLoteSaoReivindicadosAntesDeQualquerImpressaoComecar(t *tes
 	<-firstPrintStarted // o 1º Print() já começou e está bloqueado, nenhum terminou ainda
 
 	// Com o código antigo (1 passada só), só job-1 teria o claim aqui; job-2 e job-3 ainda nem
-	// teriam sido tocados. Com PR-11, os 3 já foram reivindicados antes do 1º Print() sequer rodar.
+	// teriam sido tocados. Com as duas passadas, os 3 já foram reivindicados antes do 1º Print() sequer rodar.
 	for i := 1; i <= n; i++ {
 		id := fmt.Sprintf("job-%d", i)
 		got := f.reportsFor(id)
@@ -521,7 +521,7 @@ func TestRunNuncaImprimeDoisJobsAoMesmoTempo(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-09 — retry do report
+// Retry do report
 // ---------------------------------------------------------------------------------------------
 
 // 5 tentativas, backoff exponencial com teto de 2 min.
@@ -654,7 +654,7 @@ func TestFalhaSemMensagemGeraTextoExplicito(t *testing.T) {
 	}
 }
 
-// PPE-06: o cooldown do 429 é honrado **dentro** do consumidor — é isso que faz o edge case do
+// O cooldown do 429 é honrado **dentro** do consumidor — é isso que faz o edge case do
 // "exatamente 1 fetch trailing" acontecer sem nenhuma fila de fetches.
 func TestCooldownDoRateLimitEEsperadoNoConsumidor(t *testing.T) {
 	f := newFakeBackend()
@@ -755,7 +755,7 @@ func TestJobSemIdEIgnorado(t *testing.T) {
 	}
 }
 
-// Cancelamento do context raiz para o consumidor — base do graceful shutdown (T27).
+// Cancelamento do context raiz para o consumidor — base do graceful shutdown.
 func TestCancelamentoParaOConsumidor(t *testing.T) {
 	f := newFakeBackend()
 	r := newRunner(f, nil)
@@ -771,8 +771,8 @@ func TestCancelamentoParaOConsumidor(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-30 — graceful shutdown: o report final não pode se perder quando o context raiz é cancelado
-// enquanto o job ainda está em voo (defeito 1 do gate spec-driven-eval, achado 2026-08-10T023120Z).
+// Graceful shutdown: o report final não pode se perder quando o context raiz é cancelado
+// enquanto o job ainda está em voo.
 // ---------------------------------------------------------------------------------------------
 
 // Reprodução exata do defeito: o cancelamento chega **enquanto o job ainda está imprimindo** — é
@@ -812,7 +812,7 @@ func TestReportFinalSaiMesmoComContextoCanceladoDuranteAImpressao(t *testing.T) 
 
 	got := f.reportsFor("job-1")
 	if len(got) != 2 {
-		t.Fatalf("reports = %+v, esperado 2 (printing + completed) mesmo com ctx cancelado durante a impressão — o report final não pode se perder no shutdown (PPE-30)", got)
+		t.Fatalf("reports = %+v, esperado 2 (printing + completed) mesmo com ctx cancelado durante a impressão — o report final não pode se perder no shutdown", got)
 	}
 	final := got[len(got)-1]
 	if final.status != StatusCompleted {

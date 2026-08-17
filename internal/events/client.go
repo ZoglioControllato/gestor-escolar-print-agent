@@ -44,11 +44,11 @@ const (
 
 // errUnauthorized marca a negativa do authorizer (token revogado, device rejeitado, drift do
 // espelho). Não é motivo para insistir no WebSocket: vira sinal para o agente decidir re-pair ou
-// "Desvinculado" (PPE-20, consumido em T26).
+// "Desvinculado".
 var errUnauthorized = errors.New("events: autorização recusada")
 
-// Status é o estado do transporte, lido pelo seletor de intervalo do poll de fallback (PPE-06 ×
-// PPE-26: 10 s com o WebSocket fora, 300 s com ele assinado).
+// Status é o estado do transporte, lido pelo seletor de intervalo do poll de fallback (10 s com
+// o WebSocket fora, 300 s com ele assinado).
 type Status int32
 
 const (
@@ -75,7 +75,7 @@ func (s Status) String() string {
 //
 // `RealtimeEndpoint` e `HTTPHost` são **hosts** (ex.: `events-dev.pedagogicoonline.com.br`), não
 // URLs — é o que o servidor publica (`print-agent-device-config.int.test.ts:33-34`) e o que o
-// firewall da escola libera (PPE-34).
+// firewall da escola libera.
 type Config struct {
 	RealtimeEndpoint string
 	HTTPHost         string
@@ -206,11 +206,11 @@ func New(cfg Config, opts ...Option) *Client {
 }
 
 // Wake emite um sinal sempre que há motivo para buscar a fila: evento recebido **ou**
-// `subscribe_success` (a drenagem de reconexão, PPE-06 — a janela em que o WebSocket estava fora é
+// `subscribe_success` (a drenagem de reconexão — a janela em que o WebSocket estava fora é
 // justamente quando um evento pode ter sido perdido).
 func (c *Client) Wake() <-chan struct{} { return c.wake }
 
-// Unauthorized emite quando o authorizer recusa. Consumido pelo tratamento de 401 (PPE-20, T26).
+// Unauthorized emite quando o authorizer recusa. Consumido pelo tratamento de 401.
 func (c *Client) Unauthorized() <-chan struct{} { return c.unauthorized }
 
 // Status devolve o estado atual do transporte.
@@ -327,7 +327,7 @@ func (c *Client) session(ctx context.Context) error {
 		case "subscribe_success":
 			c.setStatus(StatusSubscribed)
 			c.logf("[EVENTS] assinado em %s", c.cfg.Channel)
-			// Drenagem: a janela sem assinatura é onde um evento pode ter se perdido (PPE-06).
+			// Drenagem: a janela sem assinatura é onde um evento pode ter se perdido.
 			c.signal(c.wake)
 		case "data":
 			c.handleData(msg.Event)
@@ -422,7 +422,7 @@ func writeJSON(ctx context.Context, conn *websocket.Conn, v any, timeout time.Du
 //
 // A distinção importa porque as duas reações são opostas: queda pede reconexão com backoff;
 // recusa pede **parar** e tratar como 401. Insistir contra um token revogado é o laço quente que
-// PPE-20 proíbe.
+// o agente proíbe.
 func isAuthError(errs json.RawMessage) bool {
 	lower := strings.ToLower(string(errs))
 	return strings.Contains(lower, "unauthorized") ||

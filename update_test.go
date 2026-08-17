@@ -148,7 +148,7 @@ func countOrphanUpdateTemps(t *testing.T) int {
 	return n
 }
 
-// PPE-18: manifest sem sha256 é o caminho inseguro — este teste prova que ele é recusado, não só que
+// Manifest sem sha256 é o caminho inseguro — este teste prova que ele é recusado, não só que
 // o caminho feliz (com hash certo) funciona.
 func TestDownloadToTemp_SemSHA256Recusa(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,8 +175,8 @@ func TestDownloadToTemp_SemSHA256Recusa(t *testing.T) {
 	}
 }
 
-// PPE-18: hash incorreto também é recusa — comportamento que já existia antes desta task (o "already
-// existed" do Done-when), mas sem teste até agora.
+// Hash incorreto também é recusa — comportamento que já existia antes desta task, mas sem teste
+// até agora.
 func TestDownloadToTemp_SHA256IncorretoRecusa(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("conteudo-do-artefato"))
@@ -239,7 +239,7 @@ func sha256Hex(t *testing.T, s string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// PPE-18: o `.old` de um swap anterior é removido no startup seguinte — nunca se acumula.
+// O `.old` de um swap anterior é removido no startup seguinte — nunca se acumula.
 func TestRemoveStaleUpdateBackup_RemoveOArquivo(t *testing.T) {
 	dir := t.TempDir()
 	exe := filepath.Join(dir, "agent")

@@ -23,7 +23,7 @@ import (
 	"print-agent/internal/jobs"
 )
 
-// apiClient é a **única** porta HTTP do agente (PPE-25). Um cliente por processo: reaproveita
+// apiClient é a **única** porta HTTP do agente. Um cliente por processo: reaproveita
 // conexão, e — o que importa — nenhum caminho fala com a rede sem deadline.
 var apiClient = api.New()
 
@@ -41,12 +41,12 @@ var isRunningAsService bool
 
 const printAgentAPIPrefix = "/print-agent"
 
-// errAgentUnauthorized marca uma resposta 401 do servidor REST (PPE-20) — a mesma reação do lado
+// errAgentUnauthorized marca uma resposta 401 do servidor REST — a mesma reação do lado
 // WS (events.Client.Unauthorized()): não adianta insistir, o token é que está recusado.
 var errAgentUnauthorized = errors.New("agent: servidor recusou o token (401)")
 
 // sleepCtx espera `d`, mas devolve mais cedo se `ctx` for cancelado — usado em todo laço/backoff do
-// agente que precisa parar de verdade num SIGTERM/stop de serviço (PPE-30), em vez de um
+// agente que precisa parar de verdade num SIGTERM/stop de serviço, em vez de um
 // `time.Sleep` surdo ao cancelamento.
 func sleepCtx(ctx context.Context, d time.Duration) error {
 	if d <= 0 {
@@ -113,7 +113,7 @@ func pair(ctx context.Context, cfg *Config) (string, error) {
 		return "", fmt.Errorf("token não retornado")
 	}
 
-	// 0600 (PPE-22): token.txt é a credencial do device — 0644 deixava qualquer usuário local lê-la
+	// 0600: token.txt é a credencial do device — 0644 deixava qualquer usuário local lê-la
 	// e se passar pelo agente perante o servidor.
 	if err := os.WriteFile(cfg.TokenFile, []byte(result.Token), 0600); err != nil {
 		return "", fmt.Errorf("erro ao salvar token: %w", err)
@@ -133,13 +133,13 @@ type devicePolicy struct {
 	printerTypes   map[string]string
 
 	// events é o bloco de push. Nulo = "opere em poll" — bloco ausente (frota 1.x, kill-switch
-	// ligado, ambiente sem a stack Amplify) e `enabled:false` são a mesma instrução (PPE-28).
+	// ligado, ambiente sem a stack Amplify) e `enabled:false` são a mesma instrução.
 	events *EventsConfig
 }
 
 // decodeDevicePolicy lê o corpo do device-config nas duas formas que o agente aceita desde sempre:
-// aninhada em `policy` e plana na raiz. Não decodifica mais `etag`/`localWritableKeys` (PPE-33,
-// 034-print-push-events/T30): o servidor nunca enviou nenhum dos dois campos — nem hoje, nem antes
+// aninhada em `policy` e plana na raiz. Não decodifica mais `etag`/`localWritableKeys`: o servidor
+// nunca enviou nenhum dos dois campos — nem hoje, nem antes
 // desta feature (medido em `backend/api/src/routes/print-agent.ts`) — então o mecanismo de
 // cache/`localWritableKeys` nunca executou em produção; era código morto desde sempre, não uma
 // regressão desta task.
@@ -184,11 +184,11 @@ func decodeDevicePolicy(body []byte) (devicePolicy, error) {
 }
 
 // applyDevicePolicy escreve a política sobre `c`, que é sempre a **cópia** entregue por
-// UpdateRuntimeConfig — nunca a config publicada (PPE-29). É pura sobre `c`: pode ser reexecutada
+// UpdateRuntimeConfig — nunca a config publicada. É pura sobre `c`: pode ser reexecutada
 // quando o CAS falha.
 //
-// Servidor vence quando manda um valor não vazio — sem gate de `localWritableKeys` (PPE-33,
-// 034-print-push-events/T30: removido junto com o etag, nunca populado de verdade). O bug real que
+// Servidor vence quando manda um valor não vazio — sem gate de `localWritableKeys` (removido
+// junto com o etag, nunca populado de verdade). O bug real que
 // isso corrigiu não era o gate em si — era o backend mandar `printSettings: "noscale"`
 // **incondicionalmente**, hardcoded, sobrescrevendo o valor local a cada sync de 60 s; o servidor
 // parou de mandar esse literal (`backend/api/src/routes/print-agent.ts`), então esta função só
@@ -214,20 +214,20 @@ func applyDevicePolicy(c *Config, p devicePolicy) {
 
 	// Atribuição direta, **não** merge: o bloco ausente precisa apagar o que havia. É essa linha
 	// que faz o kill-switch (`PRINT_EVENTS_ENABLED=false`) devolver a frota ao poll em ≤60 s sem
-	// redeploy de agente (PPE-10) — um merge deixaria o endpoint antigo vivo para sempre.
+	// redeploy de agente — um merge deixaria o endpoint antigo vivo para sempre.
 	c.Events = p.events
 }
 
 // syncDeviceConfig aplica política remota (GET /print-agent/device-config): servidor é fonte de
 // verdade para todo campo que mandar preenchido.
 //
-// Sem cache de ETag/`If-None-Match` nem ack (PPE-33, 034-print-push-events/T30 — removido dos dois
+// Sem cache de ETag/`If-None-Match` nem ack (removido dos dois
 // lados): o servidor nunca implementou a metade que faria o cache valer a pena — nunca manda
 // `ETag`/304, nunca leu o corpo do POST /device-config/ack que recebia (só devolvia `{ok:true}`) —
 // então era round-trip a mais por sync sem nenhum ganho, não uma otimização real.
 //
 // Não recebe `*Config` de propósito: a versão anterior recebia o ponteiro compartilhado e escrevia
-// direto no mapa dele, e era esse o caminho do `fatal error: concurrent map writes` do achado #2.
+// direto no mapa dele, e era esse o caminho do `fatal error: concurrent map writes`.
 // Aqui a política vai para uma cópia, publicada atomicamente.
 func syncDeviceConfig(ctx context.Context, token string) error {
 	cfg := GetRuntimeConfig()
@@ -540,9 +540,8 @@ func downloadPDFFromUrl(ctx context.Context, downloadUrl, jobId string) (string,
 // reportStatus informa o servidor sobre o andamento de um job.
 //
 // Devolve erro — inclusive para resposta não-2xx — porque quem chama precisa distinguir "o servidor
-// registrou" de "não registrou": é essa distinção que impede a reimpressão infinita do achado #3 do
-// diagnóstico, onde o report era fire-and-forget e um `completed` perdido deixava o job `queued`
-// para sempre.
+// registrou" de "não registrou": é essa distinção que impede a reimpressão infinita — antes, o
+// report era fire-and-forget e um `completed` perdido deixava o job `queued` para sempre.
 func reportStatus(ctx context.Context, cfg *Config, token, jobId, status, errorMsg string) error {
 	body := map[string]string{"jobId": jobId, "status": status}
 	if errorMsg != "" {
@@ -675,7 +674,7 @@ func printFile(cfg *Config, printerName, filePath string) error {
 
 // downloadAndPrint baixa e imprime um job. É a metade do antigo `processJob` que **não** fala de
 // estado: reportar `printing`/`completed`/`failed` e decidir se o job já está em voo passou a ser
-// responsabilidade do `jobs.Runner`, que é quem garante a unicidade (PPE-09).
+// responsabilidade do `jobs.Runner`, que é quem garante a unicidade.
 func downloadAndPrint(ctx context.Context, job jobs.Job) error {
 	cfg := GetRuntimeConfig()
 	if cfg == nil {
@@ -689,10 +688,10 @@ func downloadAndPrint(ctx context.Context, job jobs.Job) error {
 	if err != nil {
 		return fmt.Errorf("[download] %w", err)
 	}
-	// A remoção do PDF temporário não é mais uma goroutine dedicada por job (PPE-31,
-	// diagnostic.md §3 achado #7: uma `time.Sleep(3 * time.Minute)` + goroutine para cada job era
+	// A remoção do PDF temporário não é mais uma goroutine dedicada por job: uma
+	// `time.Sleep(3 * time.Minute)` + goroutine para cada job era
 	// uma goroutine a mais por impressão, e um crash/kill antes dos 3 min deixava o arquivo órfão
-	// para sempre — nada varria o diretório temp no próximo start). O laço único de
+	// para sempre — nada varria o diretório temp no próximo start. O laço único de
 	// `sweepOrphanTempFiles` em `run()` cobre os dois casos: a mesma janela de graça de 3 min antes
 	// de apagar (o spooler pode reacessar o arquivo pouco depois do print retornar) e a varredura de
 	// órfãos no startup.
@@ -725,7 +724,7 @@ func (j pendingJob) ID() string {
 }
 
 // fetchPendingJobs busca a fila do device. Devolve também o cooldown pedido pelo servidor num 429
-// (`Retry-After`/`pollIntervalMs`, PPE-06) — quem o honra é o consumidor.
+// (`Retry-After`/`pollIntervalMs`) — quem o honra é o consumidor.
 func fetchPendingJobs(ctx context.Context, cfg *Config, token string) (jobs []pendingJob, cooldown time.Duration, err error) {
 	url := serverURL(cfg, "/pending-jobs")
 	logf("[DEBUG] fetchPendingJobs: GET %s", url)
@@ -777,10 +776,10 @@ const (
 	pollFallbackInterval = 10 * time.Second
 
 	// pollReconcileInterval é a rede de segurança com o WebSocket saudável: cobre evento perdido e
-	// publish que falhou (PPE-26). Não é o transporte; o transporte é o evento.
+	// publish que falhou. Não é o transporte; o transporte é o evento.
 	pollReconcileInterval = 300 * time.Second
 
-	// heartbeatInterval é a batida de presença (PPE-07). O servidor tolera 150 s (2,5 batidas), o
+	// heartbeatInterval é a batida de presença. O servidor tolera 150 s (2,5 batidas), o
 	// que absorve uma batida perdida sem marcar a escola como offline.
 	heartbeatInterval = 60 * time.Second
 
@@ -791,7 +790,7 @@ const (
 	heartbeatJitter     = 0.1
 
 	// tempFileMaxAge é a janela de graça antes de apagar um PDF de job já processado: o mesmo tempo
-	// que a goroutine por job dava ao spooler Windows para reacessar o arquivo, antes de PPE-31
+	// que a goroutine por job dava ao spooler Windows para reacessar o arquivo, antes de
 	// trocar por um reaper único (design.md § temp).
 	tempFileMaxAge = 3 * time.Minute
 
@@ -835,7 +834,7 @@ func nextPollDelay(status events.Status, rnd func() float64) time.Duration {
 }
 
 // transportLabel é o que o heartbeat reporta em `transport` — a telemetria que identifica as
-// escolas cujo firewall bloqueia WSS (PPE-06/PPE-07). É um rótulo, nunca uma condição.
+// escolas cujo firewall bloqueia WSS. É um rótulo, nunca uma condição.
 func transportLabel(status events.Status) string {
 	if status == events.StatusSubscribed {
 		return "ws"
@@ -855,7 +854,7 @@ func signalWake(ch chan struct{}) {
 	}
 }
 
-// sendHeartbeat anuncia presença sem consultar a fila (PPE-07).
+// sendHeartbeat anuncia presença sem consultar a fila.
 //
 // O agente 1.x se anunciava de graça, a cada poll de 1 s. O agente vNext fica calado esperando o
 // evento, então precisa de um sinal próprio — senão um device saudável com WebSocket assinado
@@ -951,7 +950,7 @@ func (t *transport) apply(ctx context.Context, desired events.Config, enabled bo
 			case <-client.Wake():
 				signalWake(wake)
 			case <-client.Unauthorized():
-				// PPE-20: o cliente já parou sozinho (Client.Run devolve sem backoff numa
+				// O cliente já parou sozinho (Client.Run devolve sem backoff numa
 				// negativa de autorização — nenhum "insistir" do lado WS). O que falta é decidir
 				// o que o agente inteiro faz — mesma reação de um 401 REST, por isso o mesmo
 				// handleUnauthorized.
@@ -980,8 +979,8 @@ var unauthorizedSleep = sleepCtx
 // unauthorizedBackoff é o tempo de unauthorizedSleep.
 const unauthorizedBackoff = 5 * time.Second
 
-// handleUnauthorized reage à primeira negativa de autorização de um episódio (REST 401 ou WS,
-// PPE-20): desliga o transporte push e, com `enrollmentKey` salva, tenta **exatamente uma** vez
+// handleUnauthorized reage à primeira negativa de autorização de um episódio (REST 401 ou WS):
+// desliga o transporte push e, com `enrollmentKey` salva, tenta **exatamente uma** vez
 // re-parear; sem chave salva, ou se essa tentativa falhar, marca o agente "Desvinculado" — nunca um
 // loop de retentativas.
 //
@@ -1038,7 +1037,7 @@ func run(ctx context.Context, cfg *Config) error {
 		logf("Aviso: erro ao preparar diretório de dados: %v", err)
 	}
 
-	// PPE-31: varre PDFs órfãos do temp no startup. `maxAge` zero varre tudo — o agente não estava
+	// Varre PDFs órfãos do temp no startup. `maxAge` zero varre tudo — o agente não estava
 	// rodando, então nada ali é "recente" de verdade (um job em voo de verdade não sobreviveria a um
 	// restart do processo de qualquer forma, dado que o registro em voo é só em memória).
 	if n := sweepOrphanTempFiles(tempDir(), 0, time.Now()); n > 0 {
@@ -1068,9 +1067,9 @@ func run(ctx context.Context, cfg *Config) error {
 			if pairErr != nil {
 				SetLastPairError(pairErr.Error())
 				logf("Falha ao parear: %v. Tentando novamente em 60s...", pairErr)
-				// PPE-30: sleepCtx (não time.Sleep) — um SIGTERM/stop do serviço durante o
-				// pareamento não pode esperar até 60s para ser notado (achado (i) da fase
-				// anterior). ctx cancelado aqui devolve o erro de cancelamento, que run()
+				// sleepCtx (não time.Sleep) — um SIGTERM/stop do serviço durante o
+				// pareamento não pode esperar até 60s para ser notado. ctx cancelado aqui
+				// devolve o erro de cancelamento, que run()
 				// propaga para fora do laço de pareamento em vez de tentar de novo.
 				if err := sleepCtx(ctx, 60*time.Second); err != nil {
 					logf("Cancelado durante pareamento.")
@@ -1105,7 +1104,7 @@ func run(ctx context.Context, cfg *Config) error {
 	tr := &transport{}
 	runner := jobs.New(jobs.Deps{
 		Fetch: func(ctx context.Context) ([]jobs.Job, time.Duration, error) {
-			// PPE-20: "Desvinculado" não bate mais no servidor — é o que impede o loop quente
+			// "Desvinculado" não bate mais no servidor — é o que impede o loop quente
 			// enquanto o agente espera uma ação (re-pair automático em andamento, ou manual via
 			// painel).
 			if IsAgentUnauthorized() {
@@ -1134,7 +1133,7 @@ func run(ctx context.Context, cfg *Config) error {
 	})
 	go runner.Run(ctx, wake)
 
-	// Depois do runner existir (PR-11): o auto-update precisa de `runner.InFlight` para não
+	// Depois do runner existir: o auto-update precisa de `runner.InFlight` para não
 	// reiniciar no meio de uma rajada de impressão (ver comentário de `checkAndApplyUpdate`).
 	scheduleUpdateChecks(ctx, GetRuntimeConfig(), runner.InFlight)
 
@@ -1160,7 +1159,7 @@ func run(ctx context.Context, cfg *Config) error {
 
 	// --- Reaper do temp -----------------------------------------------------------------------
 	//
-	// PPE-31: uma varredura periódica para o processo inteiro, não uma goroutine por job. Roda no
+	// Uma varredura periódica para o processo inteiro, não uma goroutine por job. Roda no
 	// mesmo ritmo da janela de graça (`tempFileMaxAge`), então um PDF não sobrevive muito além do
 	// tempo que o spooler Windows precisa para reacessá-lo.
 	go func() {
@@ -1205,11 +1204,11 @@ func run(ctx context.Context, cfg *Config) error {
 
 	// --- Sincronização remota + supervisão do transporte ---------------------------------------
 	//
-	// Um único ciclo (PPE-29). O ticker de 30 min que existia aqui era **redundante** — repetia o
+	// Um único ciclo. O ticker de 30 min que existia aqui era **redundante** — repetia o
 	// mesmo `syncDeviceConfig` do ciclo de 60 s — e era ele quem transformava a escrita no mapa de
 	// config numa escrita *concorrente*.
 	//
-	// É este ciclo que dá ao kill-switch o "≤60 s" de PPE-10: a sync relê o bloco `events`, e o
+	// É este ciclo que dá ao kill-switch o "≤60 s": a sync relê o bloco `events`, e o
 	// supervisor liga ou desliga o transporte conforme o que voltou.
 	applyTransport := func() {
 		desired, enabled := eventsClientConfig(GetRuntimeConfig(), GetAgentToken())
@@ -1250,7 +1249,7 @@ func run(ctx context.Context, cfg *Config) error {
 	SetTrayOnline(true)
 	<-ctx.Done()
 
-	// PPE-30: graceful shutdown. O cancelamento já chegou a todo produtor (fallback, reaper,
+	// Graceful shutdown. O cancelamento já chegou a todo produtor (fallback, reaper,
 	// heartbeat, sync — todos com `case <-ctx.Done(): return` no próprio select) e ao consumidor
 	// (`jobs.Runner.Run` também sai no `ctx.Done()`); o que falta é dar ao job que **já estava em
 	// voo** — reivindicado, imprimindo ou retentando o report final — a chance de terminar antes do
@@ -1263,7 +1262,7 @@ func run(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-// gracefulShutdownTimeout é o teto de espera por jobs em voo antes de sair de qualquer forma (PPE-30)
+// gracefulShutdownTimeout é o teto de espera por jobs em voo antes de sair de qualquer forma
 // — um shutdown que nunca termina é pior que perder o rastro de um job.
 const gracefulShutdownTimeout = 30 * time.Second
 
@@ -1273,8 +1272,8 @@ const gracefulShutdownTimeout = 30 * time.Second
 // antes de `run` sequer ter concluído sua própria espera.
 const gracefulShutdownGrace = 5 * time.Second
 
-// waitForInFlightJobs espera `runner` esvaziar o set de jobs em voo, ou `timeout` vencer primeiro
-// (PPE-30). O job que já está em voo continua seu próprio backoff de report (jobs.Runner cuida
+// waitForInFlightJobs espera `runner` esvaziar o set de jobs em voo, ou `timeout` vencer primeiro.
+// O job que já está em voo continua seu próprio backoff de report (jobs.Runner cuida
 // disso, com o context já cancelado — Report/Print recebem o mesmo ctx e podem abortar cedo); aqui
 // só damos a ele a chance de terminar antes do processo sair.
 func waitForInFlightJobs(runner *jobs.Runner, timeout time.Duration) {
@@ -1358,7 +1357,7 @@ func main() {
 	}
 
 	// Modo interativo: carrega config, inicia agente + tray em background e o processo principal
-	// espera o sinal de encerramento (PPE-30) — em vez de bloquear para sempre em runTray/select{},
+	// espera o sinal de encerramento — em vez de bloquear para sempre em runTray/select{},
 	// que engolia SIGTERM sem dar ao agente nenhuma chance de terminar um job em voo.
 	cfg, err := loadConfig()
 	if err != nil {

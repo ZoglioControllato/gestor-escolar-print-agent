@@ -8,7 +8,7 @@ import (
 // maxRand devolve sempre o teto do intervalo — expõe a curva do backoff sem sorteio.
 func maxRand(n int64) int64 { return n }
 
-// PPE-06: backoff exponencial 1 s → teto 60 s. A curva é o comportamento: subir devagar demais
+// Backoff exponencial 1 s → teto 60 s. A curva é o comportamento: subir devagar demais
 // martela um servidor em recuperação, subir rápido demais atrasa a volta do push.
 func TestBackoffDobraAteOTetoDe60s(t *testing.T) {
 	cases := []struct {
@@ -67,7 +67,7 @@ func TestBackoffComContagemInvalidaCaiParaAPrimeiraFalha(t *testing.T) {
 	}
 }
 
-// PPE-06: "reset após 60 s estável". Sem o reset, uma conexão que cai uma vez por hora acabaria
+// Reset após 60 s estável. Sem o reset, uma conexão que cai uma vez por hora acabaria
 // esperando 60 s em cada queda — a contagem nunca desceria e o push voltaria sempre tarde.
 func TestResetDaContagemAposSessaoEstavel(t *testing.T) {
 	cases := []struct {

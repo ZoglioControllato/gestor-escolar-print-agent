@@ -21,11 +21,11 @@ import (
 	"print-agent/internal/api"
 )
 
-// ErrMissingSHA256 marca um manifest sem hash para o artefato (PPE-18, AD-011). O contrato do
+// ErrMissingSHA256 marca um manifest sem hash para o artefato. O contrato do
 // auto-update exige verificação **obrigatória**: um binário que roda como SYSTEM/root instalado sem
 // checagem de integridade é a superfície de ataque mais direta que este agente tem — bastaria
 // comprometer a origem do manifest (mesmo domínio do app web) para trocar o binário de toda a frota.
-var ErrMissingSHA256 = errors.New("update: manifest sem sha256 para este artefato — recusado (AD-011)")
+var ErrMissingSHA256 = errors.New("update: manifest sem sha256 para este artefato — recusado")
 
 type versionArtifact struct {
 	URL    string `json:"url"`
@@ -73,11 +73,11 @@ func resolveArtifactURL(base, artifactURL string) string {
 
 // checkAndApplyUpdate consulta print-agent-version.json no app web e aplica update se houver.
 // checkAndApplyUpdate verifica, baixa e aplica uma versão nova, e reinicia o processo. `inFlight`
-// (`runner.InFlight`, PR-11 da feature 038) é a trava que impede o restart de atropelar uma rajada de
+// (`runner.InFlight`) é a trava que impede o restart de atropelar uma rajada de
 // impressão: `Print()` não é cancelável (`printFile`, `cmd.CombinedOutput()` sem `CommandContext`), e
-// desde que o claim passou a acontecer para o lote inteiro antes de imprimir qualquer um (PR-11),
-// vários jobs podem estar reivindicados ao mesmo tempo — reiniciar no meio deles reproduziria o PPE-30
-// (job preso em `printing` para sempre) para vários jobs de uma vez, não só um. Checado duas vezes:
+// desde que o claim passou a acontecer para o lote inteiro antes de imprimir qualquer um,
+// vários jobs podem estar reivindicados ao mesmo tempo — reiniciar no meio deles reproduziria o job preso
+// em `printing` para sempre, para vários jobs de uma vez, não só um. Checado duas vezes:
 // antes de baixar (evita trabalho à toa) e de novo antes de `restartSelf` (a trava que importa de
 // verdade — a impressão pode ter começado durante o download). Se ocupado, este ciclo é pulado; o
 // próximo `ticker` (6h) tenta de novo — não há retry mais cedo, é a mesma cadência de sempre.
@@ -192,7 +192,7 @@ func downloadToTemp(ctx context.Context, cfg *Config, artifact versionArtifact, 
 
 	logf("[UPDATE] Baixados %d bytes", n)
 
-	// PPE-18: SHA-256 é obrigatório, não condicional. Um manifest sem hash não vira "instala sem
+	// SHA-256 é obrigatório, não condicional. Um manifest sem hash não vira "instala sem
 	// checar" — vira recusa explícita. `os.Remove(tmpPath)` aqui é o que impede o download órfão de
 	// sobreviver à recusa.
 	if strings.TrimSpace(artifact.SHA256) == "" {
@@ -325,10 +325,10 @@ func applyLinuxUpdate(ctx context.Context, cfg *Config, artifact versionArtifact
 	return nil
 }
 
-// removeStaleUpdateBackup apaga o `.old` deixado por um swap anterior (PPE-18).
+// removeStaleUpdateBackup apaga o `.old` deixado por um swap anterior.
 //
 // `.old` só deveria existir entre o instante do swap e o próximo startup — antes desta task ele
-// nunca era removido (achado #5 do diagnóstico), então cada auto-update aplicado (a cada 6h, AD-011)
+// nunca era removido, então cada auto-update aplicado (a cada 6h)
 // deixava mais um binário morto no disco, para sempre. `exePath` vem injetado para o teste não
 // depender de `os.Executable()`.
 func removeStaleUpdateBackup(exePath string) {
@@ -350,9 +350,9 @@ func removeStaleUpdateBackup(exePath string) {
 }
 
 // scheduleUpdateChecks verifica print-agent-version.json a cada 6 horas (primeira após 2 min).
-// `inFlight` (`runner.InFlight`) é repassado a `checkAndApplyUpdate` — ver o comentário lá (PR-11).
+// `inFlight` (`runner.InFlight`) é repassado a `checkAndApplyUpdate` — ver o comentário lá.
 func scheduleUpdateChecks(ctx context.Context, cfg *Config, inFlight func() int) {
-	// PPE-18: o `.old` do swap anterior (se houver) é varrido no startup seguinte, antes de qualquer
+	// O `.old` do swap anterior (se houver) é varrido no startup seguinte, antes de qualquer
 	// outra coisa do ciclo de update.
 	if exePath, err := resolveExecutablePath(); err == nil {
 		removeStaleUpdateBackup(exePath)

@@ -1,6 +1,6 @@
 // Package api concentra toda a saída HTTP do agente numa porta só.
 //
-// Motivo (PPE-25, diagnostic.md §3 achado #4): antes desta feature o agente falava HTTP por
+// Motivo: antes desta feature o agente falava HTTP por
 // `http.DefaultClient`, que **não tem timeout algum** — uma conexão pendurada no poll síncrono
 // congelava o agente para sempre, e a máquina só voltava a imprimir com reinício manual. Três call
 // sites ainda descartavam o erro de `http.NewRequest` (`req, _ :=`), o que transforma uma URL
@@ -162,13 +162,13 @@ func (r *Response) OK() bool { return r != nil && r.StatusCode >= 200 && r.Statu
 // RateLimited reporta se o servidor recusou por rate limit.
 func (r *Response) RateLimited() bool { return r != nil && r.StatusCode == http.StatusTooManyRequests }
 
-// Unauthorized reporta se o servidor recusou o token (PPE-20): device revogado, rejeitado ou
+// Unauthorized reporta se o servidor recusou o token: device revogado, rejeitado ou
 // removido. É o sinal que separa "insistir com backoff" (rede oscilando) de "parar e decidir"
 // (re-pair único ou estado Desvinculado) — insistir contra um token que não vai voltar a ser aceito
 // é o loop quente que a AC proíbe.
 func (r *Response) Unauthorized() bool { return r != nil && r.StatusCode == http.StatusUnauthorized }
 
-// Cooldown devolve por quanto tempo o servidor pediu silêncio (PPE-06).
+// Cooldown devolve por quanto tempo o servidor pediu silêncio.
 //
 // `GET /print-agent/pending-jobs` responde ao rate limit com **os dois** sinais
 // (`backend/api/src/routes/print-agent.ts:266-267`): o header `Retry-After` em segundos e

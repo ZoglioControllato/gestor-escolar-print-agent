@@ -150,10 +150,9 @@ compile_windows_installer() {
   local root
   root="$(pwd)"
 
-  # SumatraPDF.exe deixou de ser versionado no git (034-print-push-events/T29, PPE-32) — é
-  # dependência de build de terceiro, obtida uma vez e mantida só em disco. Sem este check, o
-  # Inno Setup falharia com "source file not found", que não diz o que fazer; com ele, a mensagem
-  # aponta direto para o download. Ver README.md § Pré-requisitos.
+  # SumatraPDF.exe não é versionado no git — é dependência de build de terceiro, obtida uma vez e
+  # mantida só em disco. Sem este check, o Inno Setup falharia com "source file not found", que não
+  # diz o que fazer; com ele, a mensagem aponta direto para o download.
   if [[ ! -f "${root}/SumatraPDF.exe" ]]; then
     echo "ERRO: ${root}/SumatraPDF.exe não encontrado — necessário para o instalador Windows." >&2
     echo "  Baixe a versão portátil em https://www.sumatrapdfreader.org/download-free-pdf-viewer" >&2

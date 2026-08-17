@@ -31,9 +31,9 @@ func testConfig() *Config {
 	}
 }
 
-// PPE-24 (034-print-push-events/T30): o nome default deixou de ser o literal fixo "Agente" — dois
+// O nome default deixou de ser o literal fixo "Agente" — dois
 // devices sem nome configurado na mesma conta pareavam sob o mesmo `(account_id, name)` e
-// canibalizavam o token um do outro (achado do diagnóstico). Comparado contra `os.Hostname()`
+// canibalizavam o token um do outro. Comparado contra `os.Hostname()`
 // direto, não contra um valor fixado no teste: a asserção fica presa à função real, não a uma
 // suposição sobre qual é o hostname da máquina que roda o teste.
 func TestDefaultDeviceNameUsaOHostnameDaMaquina(t *testing.T) {
@@ -49,7 +49,7 @@ func TestDefaultDeviceNameUsaOHostnameDaMaquina(t *testing.T) {
 	}
 }
 
-// PPE-24: os dois pontos de entrada que decidiam o nome default (config nova, config existente com
+// Os dois pontos de entrada que decidiam o nome default (config nova, config existente com
 // Name vazio) usam a mesma resolução — nenhum dos dois deveria fixar "Agente" enquanto
 // os.Hostname() funcionar.
 func TestNomeDefaultEHostnameNosDoisCaminhos(t *testing.T) {
@@ -69,7 +69,7 @@ func TestNomeDefaultEHostnameNosDoisCaminhos(t *testing.T) {
 	}
 }
 
-// PPE-29: a config publicada é uma **cópia**. Sem isto o chamador continuaria segurando uma
+// A config publicada é uma **cópia**. Sem isto o chamador continuaria segurando uma
 // referência viva para o estado compartilhado — o ponteiro que os dois tickers mutavam.
 func TestSetRuntimeConfigPublicaCopiaNaoOPonteiroRecebido(t *testing.T) {
 	original := testConfig()
@@ -120,8 +120,8 @@ func TestCloneEProfundoNoMapa(t *testing.T) {
 	}
 }
 
-// PPE-29: a prova central. Escritores de sincronização remota, escritores do painel e leitores
-// concorrentes sobre a mesma config — o cenário exato do achado #2 (dois tickers escrevendo em
+// A prova central. Escritores de sincronização remota, escritores do painel e leitores
+// concorrentes sobre a mesma config — o cenário exato do defeito original (dois tickers escrevendo em
 // `cfg.PrinterTypes` enquanto o painel e as goroutines de job liam).
 //
 // Sob `-race` este teste mata: mutação do ponteiro publicado, Clone raso e ausência de
@@ -195,7 +195,7 @@ func TestConfigSobSyncPainelELeituraConcorrentes(t *testing.T) {
 	}
 }
 
-// PPE-29: um snapshot já lido nunca muda debaixo de quem o segura. É o que permite a uma goroutine
+// Um snapshot já lido nunca muda debaixo de quem o segura. É o que permite a uma goroutine
 // de job usar `cfg.PrinterTypes` sem lock enquanto a sync remota publica outra política.
 func TestSnapshotNaoMudaDepoisDePublicado(t *testing.T) {
 	resetRuntimeConfig(t, testConfig())
@@ -227,7 +227,7 @@ func TestSnapshotNaoMudaDepoisDePublicado(t *testing.T) {
 	}
 }
 
-// PPE-29: `syncDeviceConfig` — o call site original do defeito — publica sem tocar em nada que já
+// `syncDeviceConfig` — o call site original do defeito — publica sem tocar em nada que já
 // foi lido, mesmo quando duas chamadas correm junto com leitores.
 func TestSyncDeviceConfigConcorrenteNaoMutaOQueJaFoiLido(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -283,7 +283,7 @@ func TestSyncDeviceConfigConcorrenteNaoMutaOQueJaFoiLido(t *testing.T) {
 	}
 }
 
-// PPE-33 (034-print-push-events/T30): sem `localWritableKeys` — nunca existiu do lado do servidor
+// Sem `localWritableKeys` — nunca existiu do lado do servidor
 // (medido: `backend/api/src/routes/print-agent.ts` nunca populou o campo, nem antes desta feature),
 // então "local vence" nunca foi alcançável em produção. O que sobra é a regra simples: servidor
 // vence quando manda algo não vazio; política vazia nunca apaga o valor local (o servidor não tem
@@ -330,8 +330,8 @@ func TestApplyDevicePolicyServidorVenceQuandoNaoVazio(t *testing.T) {
 }
 
 // As duas formas do corpo do device-config (aninhada em `policy` e plana) continuam aceitas — é o
-// contrato 1.x que PPE-08 promete não mexer. `etag`/`localWritableKeys` aparecem nos dois corpos de
-// propósito (PPE-33, 034-print-push-events/T30): provam que um corpo antigo/hipotético que ainda os
+// contrato 1.x que o agente promete não mexer. `etag`/`localWritableKeys` aparecem nos dois corpos de
+// propósito: provam que um corpo antigo/hipotético que ainda os
 // mande não quebra o decode — só não populam mais campo nenhum de `devicePolicy`, que os removeu.
 func TestDecodeDevicePolicyAceitaAsDuasFormas(t *testing.T) {
 	plana := `{"printerTypes":{"a":"a4"},"printSettings":"noscale","etag":"e1","localWritableKeys":["printSettings"]}`
@@ -357,7 +357,7 @@ func TestDecodeDevicePolicyAceitaAsDuasFormas(t *testing.T) {
 	}
 }
 
-// PPE-29: o ticker redundante de 30 min não existe mais. Ele não fazia trabalho novo — repetia o
+// O ticker redundante de 30 min não existe mais. Ele não fazia trabalho novo — repetia o
 // `syncDeviceConfig` do ciclo de 60 s — e era a segunda escritora que tornava a escrita no mapa
 // *concorrente*. Este teste é a versão executável do "ticker de 30 min inexistente" da task.
 func TestTickerRedundanteDe30MinNaoExisteMais(t *testing.T) {

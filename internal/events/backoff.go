@@ -11,7 +11,7 @@ const (
 
 	// MaxDelay é o teto absoluto entre tentativas. Uma escola com WSS bloqueado por firewall vai
 	// bater neste valor para sempre — e é aceitável, porque o poll de fallback continua drenando a
-	// fila (PPE-06); a reconexão é otimização, nunca condição de correção.
+	// fila; a reconexão é otimização, nunca condição de correção.
 	MaxDelay = 60 * time.Second
 
 	// StableResetAfter é quanto uma sessão precisa durar para que a contagem de falhas volte a zero.

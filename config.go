@@ -26,7 +26,7 @@ type Config struct {
 	PrinterTypes   map[string]string `json:"printerTypes,omitempty"`
 	EnrollmentKey  string            `json:"enrollmentKey"`
 
-	// Events é o bloco `events` do `GET /print-agent/device-config` (PPE-10/PPE-28).
+	// Events é o bloco `events` do `GET /print-agent/device-config`.
 	//
 	// `json:"-"` de propósito: é política do servidor, renovada a cada 60 s, e não pertence ao
 	// `config.json` do disco — persistir um endpoint faria o kill-switch precisar de um segundo
@@ -35,7 +35,7 @@ type Config struct {
 	Events *EventsConfig `json:"-"`
 }
 
-// EventsConfig espelha o bloco `events` do device-config. Os endpoints são **hosts** (PPE-34), não
+// EventsConfig espelha o bloco `events` do device-config. Os endpoints são **hosts**, não
 // URLs: quem monta `wss://<host>/event/realtime` é o cliente.
 type EventsConfig struct {
 	Enabled          bool   `json:"enabled"`
@@ -56,7 +56,7 @@ func (e *EventsConfig) Equal(other *EventsConfig) bool {
 
 // Clone devolve uma cópia profunda: o mapa `PrinterTypes` é recriado, não compartilhado.
 //
-// É o que torna a config publicada imutável na prática (PPE-29). Copiar só o struct deixaria o mapa
+// É o que torna a config publicada imutável na prática. Copiar só o struct deixaria o mapa
 // apontando para o mesmo objeto — o `fatal error: concurrent map writes` continuaria alcançável, com
 // a aparência de estar resolvido.
 func (c *Config) Clone() *Config {
@@ -124,7 +124,7 @@ func defaultAppURL(server string) string {
 	return "https://app.pedagogicoonline.com.br"
 }
 
-// defaultDeviceName resolve o nome default do device para o **hostname** da máquina (PPE-24) — não
+// defaultDeviceName resolve o nome default do device para o **hostname** da máquina — não
 // mais o literal fixo `"Agente"`. O pareamento casa por `(account_id, name)`
 // (`backend/api/src/routes/print-agent.ts`): dois agentes sem nome configurado na mesma conta
 // canibalizavam o token um do outro, porque os dois pareavam sob o mesmo nome. `os.Hostname()`
@@ -231,7 +231,7 @@ func saveConfig(cfg *Config) error {
 		return fmt.Errorf("serializar config: %w", err)
 	}
 	path := filepath.Join(dir, "config.json")
-	// 0600 (PPE-22, diagnostic.md §3 achado #7): config.json guarda a enrollmentKey — qualquer
+	// 0600: config.json guarda a enrollmentKey — qualquer
 	// usuário local com 0644 conseguia ler o segredo que autoriza pareamento de novos devices na
 	// conta. No Windows, o bit Unix não tem efeito nenhum sozinho: restrictFilePermissions aplica a
 	// ACL de verdade (best-effort, logado — nunca falha a gravação por causa disso).
@@ -253,9 +253,9 @@ func tempDir() string {
 }
 
 // sweepOrphanTempFiles remove arquivos de `dir` cuja última modificação é mais velha que `maxAge`,
-// relativo a `now` (PPE-31).
+// relativo a `now`.
 //
-// Substitui a goroutine dedicada de 3 min por job (diagnostic.md §3 achado #7): antes, cada job
+// Substitui a goroutine dedicada de 3 min por job: antes, cada job
 // agendava sua própria `time.Sleep` + remoção — um crash ou `kill -9` no meio da espera deixava o
 // PDF órfão no disco para sempre, e nada varria o diretório no próximo start. Aqui é **um** laço
 // para o processo inteiro (chamado tanto no startup, com `maxAge` zero — nada deveria estar lá se o
@@ -311,7 +311,7 @@ func ensureDataFiles(cfg *Config) error {
 		}
 	}
 
-	// token.txt — create empty placeholder so the path is always present. 0600 (PPE-22): é o
+	// token.txt — create empty placeholder so the path is always present. 0600: é o
 	// segredo de autenticação do device, e 0644 deixava qualquer usuário local lê-lo.
 	if _, err := os.Stat(cfg.TokenFile); os.IsNotExist(err) {
 		if ferr := os.WriteFile(cfg.TokenFile, []byte{}, 0600); ferr != nil && firstErr == nil {
@@ -347,7 +347,7 @@ func clearPairToken(cfg *Config) error {
 	if cfg == nil {
 		return fmt.Errorf("config nil")
 	}
-	// Clone: normalizeConfig muta, e cfg pode ser a config publicada (PPE-29).
+	// Clone: normalizeConfig muta, e cfg pode ser a config publicada.
 	local := cfg.Clone()
 	normalizeConfig(local)
 	// Clear read-only attribute before removing; on Windows, os.Remove fails

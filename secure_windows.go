@@ -8,7 +8,7 @@ import (
 )
 
 // restrictFilePermissions aplica ACL restrita (SYSTEM + Administradores, sem herança) num arquivo
-// sensível do Windows (PPE-22, diagnostic.md §3 achado #7).
+// sensível do Windows.
 //
 // O bit Unix (0600) não tem efeito nenhum sozinho em NTFS: o arquivo nasce com a ACL herdada do
 // diretório, e o instalador concedia `users-full` nesse diretório — qualquer usuário local podia

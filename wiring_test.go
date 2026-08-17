@@ -15,7 +15,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------------------------
-// PPE-28 / PPE-10 — o bloco `events` decide push × poll
+// O bloco `events` decide push × poll
 // ---------------------------------------------------------------------------------------------
 
 // A resposta real do servidor com a flag ligada (`print-agent-device-config.int.test.ts`).
@@ -33,7 +33,7 @@ const deviceConfigComEvents = `{
 // A resposta com a flag desligada — byte-idêntica à resposta pré-feature (prova de aditividade).
 const deviceConfigSemEvents = `{"printerTypes":{"ext-1":"a4"},"printSettings":"noscale"}`
 
-// PPE-10/PPE-28: o bloco `events` chega do device-config e vira a configuração de push.
+// O bloco `events` chega do device-config e vira a configuração de push.
 func TestBlocoEventsDoDeviceConfigViraConfiguracaoDePush(t *testing.T) {
 	p, err := decodeDevicePolicy([]byte(deviceConfigComEvents))
 	if err != nil {
@@ -48,13 +48,13 @@ func TestBlocoEventsDoDeviceConfigViraConfiguracaoDePush(t *testing.T) {
 	if p.events.Channel != "/print/conta-1/device-1" {
 		t.Fatalf("channel = %q", p.events.Channel)
 	}
-	// PPE-34: o host entregue ao agente é o domínio customizado, nunca `*.amazonaws.com`.
+	// O host entregue ao agente é o domínio customizado, nunca `*.amazonaws.com`.
 	if strings.Contains(p.events.HTTPHost, "amazonaws.com") {
 		t.Fatalf("httpHost = %q: o agente nunca deve receber host regional", p.events.HTTPHost)
 	}
 }
 
-// PPE-28: bloco ausente **ou** `enabled:false` significam a mesma coisa — opere em poll.
+// Bloco ausente **ou** `enabled:false` significam a mesma coisa — opere em poll.
 func TestBlocoAusenteOuDesligadoSignificaModoPoll(t *testing.T) {
 	cases := map[string]string{
 		"bloco ausente (frota 1.x / kill-switch)": deviceConfigSemEvents,
@@ -74,7 +74,7 @@ func TestBlocoAusenteOuDesligadoSignificaModoPoll(t *testing.T) {
 	}
 }
 
-// PPE-10: o kill-switch devolve a frota ao poll em ≤60 s **sem redeploy de agente**. O caminho é a
+// O kill-switch devolve a frota ao poll em ≤60 s **sem redeploy de agente**. O caminho é a
 // próxima sync: o bloco some da resposta e precisa apagar o que estava publicado.
 func TestKillSwitchApagaAConfiguracaoDePushNaProximaSync(t *testing.T) {
 	resetRuntimeConfig(t, testConfig())
@@ -137,7 +137,7 @@ func TestEventsClientConfigRecusaConfiguracaoIncompleta(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-06 / PPE-26 — seletor de intervalo
+// Seletor de intervalo
 // ---------------------------------------------------------------------------------------------
 
 // O ritmo do poll depende do transporte: 10 s com o WebSocket fora (sem regressão de UX — é a
@@ -203,7 +203,7 @@ func TestJitterEspalhaOIntervaloNosDoisSentidos(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-02 — coalescing
+// Coalescing
 // ---------------------------------------------------------------------------------------------
 
 // O canal `wake` tem capacidade 1: N sinais viram 1 fetch. É o coalescing do edge case da spec, e
@@ -240,7 +240,7 @@ func TestSinaisConcorrentesCoalescemEmUmUnicoCiclo(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// PPE-07 — heartbeat
+// Heartbeat
 // ---------------------------------------------------------------------------------------------
 
 // O `transport` do heartbeat é a telemetria que identifica as escolas cujo firewall bloqueia WSS.
@@ -256,7 +256,7 @@ func TestRotuloDeTransporteSeguirOEstadoReal(t *testing.T) {
 	}
 }
 
-// PPE-07: o heartbeat bate na rota nova, com o corpo que o servidor lê (`print-agent.ts:319`).
+// O heartbeat bate na rota nova, com o corpo que o servidor lê (`print-agent.ts:319`).
 //
 // Sem esta batida, um agente **saudável** (poll de reconciliação a 300 s) estouraria o limite de
 // 150 s do servidor e a escola receberia 409 ao mandar imprimir — o push teria trocado polling
